@@ -326,6 +326,10 @@ void setup()
 
     #ifdef USEESPNOW
 
+    uint8_t newMACAddress[] = {0x34, 0x86, 0x5D, 0x58, 0xB2, 0x74};
+    esp_wifi_set_mac(WIFI_IF_STA, &newMACAddress[0]);
+
+
     WiFi.disconnect();
     // Init ESP-NOW
     if (esp_now_init() != 0) {
@@ -336,6 +340,8 @@ void setup()
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
 
+
+    g_ui.UpdateMessage(String(WiFi.macAddress()));
 
     #endif
 

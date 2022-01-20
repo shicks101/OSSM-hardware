@@ -10,28 +10,6 @@
 #include "OSSM_Config.h"        // START HERE FOR Configuration
 #include "OSSM_PinDef.h"        // This is where you set pins specific for your board
 
-// OSSM-DT Stuff
-
-#include <esp_now.h>
-uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-
-#define USEESPNOW
-
-// Variable to store if sending data was successful
-String success;
-
-
-
-struct_message incomingReadings;
-
-void OnDataRecv(uint8_t * mac, uint8_t *incomingData, uint8_t len) {
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  red_in = incomingReadings.red;
-
-}
-
 
 
 ///////////////////////////////////////////
@@ -161,6 +139,54 @@ void ICACHE_RAM_ATTR stopSwitchHandler()
     vTaskSuspend(getInputTask);
     stepper.emergencyStop();
 }
+
+
+
+
+
+// OSSM-DT Stuff
+
+#include <esp_now.h>
+uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+#define USEESPNOW
+
+// Variable to store if sending data was successful
+String success;
+
+
+typedef struct struct_message {
+    float dec_percentage;
+} struct_message;
+
+struct_message incomingReadings;
+
+int position = -50;
+
+
+void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+  Serial.print("Bytes received: ");
+  Serial.println(len);
+  Serial.println(String(incomingReadings.dec_percentage));
+  //position_in = incomingReadings.position;
+
+
+
+
+
+    position = constrain( ((-1 * maxStrokeLengthMm) - strokeZeroOffsetmm) * incomingReadings.dec_percentage, 10,100);
+
+
+
+    g_ui.UpdateMessage(String(position));
+    stepper.setSpeedInStepsPerSecond(1000);
+    stepper.moveToPositionInMillimeters(position);
+
+
+}
+
+
 
 ///////////////////////////////////////////
 ////
@@ -306,12 +332,6 @@ void setup()
         Serial.println("Error initializing ESP-NOW");
         return;
     }
-
-    // Set ESP-NOW Role
-    esp_now_set_self_role(ESP_NOW_ROLE_SLAVE);
-
-    // Register peer
-    esp_now_add_peer(broadcastAddress, ESP_NOW_ROLE_COMBO, 1, NULL, 0);
 
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);

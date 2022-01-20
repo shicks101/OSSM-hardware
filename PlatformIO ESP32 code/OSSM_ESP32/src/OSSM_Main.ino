@@ -1,16 +1,15 @@
-#include <Arduino.h>            // Basic Needs
-#include <ArduinoJson.h>        // Needed for the Bubble APP
-#include <HTTPClient.h>         // Needed for the Bubble APP
-#include <ESP_FlexyStepper.h>   // Current Motion Control
-#include <WiFiManager.h>        // Used to provide easy network connection  https://github.com/tzapu/WiFiManager
-#include <Wire.h>               // Used for i2c connections (Remote OLED Screen)
-#include "FastLED.h"            // Used for the LED on the Reference Board (or any other pixel LEDS you may add)
-#include <Encoder.h>            // Used for the Remote Encoder Input
-#include "OssmUi.h"             // Separate file that helps contain the OLED screen functions
-#include "OSSM_Config.h"        // START HERE FOR Configuration
-#include "OSSM_PinDef.h"        // This is where you set pins specific for your board
+#include <Arduino.h>          // Basic Needs
+#include <ArduinoJson.h>      // Needed for the Bubble APP
+#include <ESP_FlexyStepper.h> // Current Motion Control
+#include <Encoder.h>          // Used for the Remote Encoder Input
+#include <HTTPClient.h>       // Needed for the Bubble APP
+#include <WiFiManager.h>      // Used to provide easy network connection  https://github.com/tzapu/WiFiManager
+#include <Wire.h>             // Used for i2c connections (Remote OLED Screen)
 
-
+#include "FastLED.h"     // Used for the LED on the Reference Board (or any other pixel LEDS you may add)
+#include "OSSM_Config.h" // START HERE FOR Configuration
+#include "OSSM_PinDef.h" // This is where you set pins specific for your board
+#include "OssmUi.h"      // Separate file that helps contain the OLED screen functions
 
 ///////////////////////////////////////////
 ////
@@ -31,7 +30,7 @@
 
 // Homing
 volatile bool g_has_not_homed = true;
-        bool REMOTE_ATTACHED = false;
+bool REMOTE_ATTACHED = false;
 
 // Encoder
 Encoder g_encoder(ENCODER_A, ENCODER_B);
@@ -50,8 +49,8 @@ OssmUi g_ui(REMOTE_ADDRESS, REMOTE_SDA, REMOTE_CLK);
 IRAM_ATTR void encoderPushButton()
 {
     // TODO: Toggle position mode
-   // g_encoder.write(0);       // Reset on Button Push
-   // g_ui.NextFrame();         // Next Frame on Button Push
+    // g_encoder.write(0);       // Reset on Button Push
+    // g_ui.NextFrame();         // Next Frame on Button Push
     LogDebug("Encoder Button Push");
 }
 
@@ -111,7 +110,6 @@ TaskHandle_t oledTask = nullptr;
 #define NUM_LEDS 1
 CRGB leds[NUM_LEDS];
 
-
 // Declarations
 // TODO: Document functions
 void setLedRainbow(CRGB leds[]);
@@ -124,7 +122,6 @@ bool setInternetControl(bool wifiControlEnable);
 bool getInternetSettings();
 
 bool stopSwitchTriggered = 0;
-
 
 /**
  * the iterrupt service routine (ISR) for the emergency swtich
@@ -140,10 +137,6 @@ void ICACHE_RAM_ATTR stopSwitchHandler()
     stepper.emergencyStop();
 }
 
-
-
-
-
 // OSSM-DT Stuff
 
 #include <esp_now.h>
@@ -154,8 +147,8 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 // Variable to store if sending data was successful
 String success;
 
-
-typedef struct struct_message {
+typedef struct struct_message
+{
     float dec_percentage;
 } struct_message;
 
@@ -163,30 +156,20 @@ struct_message incomingReadings;
 
 int position = -50;
 
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
+{
+    memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+    Serial.println(String(incomingReadings.dec_percentage));
+    // position_in = incomingReadings.position;
 
-void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-  memcpy(&incomingReadings, incomingData, sizeof(incomingReadings));
-  Serial.print("Bytes received: ");
-  Serial.println(len);
-  Serial.println(String(incomingReadings.dec_percentage));
-  //position_in = incomingReadings.position;
-
-
-
-
-
-    position = constrain( ((-1 * maxStrokeLengthMm) - strokeZeroOffsetmm) * incomingReadings.dec_percentage, 10,100);
-
-
+    position = constrain(((-1 * maxStrokeLengthMm) - strokeZeroOffsetmm) * incomingReadings.dec_percentage, 10, 100);
 
     g_ui.UpdateMessage(String(position));
     stepper.setSpeedInStepsPerSecond(1000);
     stepper.moveToPositionInMillimeters(position);
-
-
 }
-
-
 
 ///////////////////////////////////////////
 ////
@@ -201,8 +184,6 @@ void setup()
     Serial.begin(115200);
     LogDebug("\n Starting");
     delay(200);
-
-
 
     FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
     FastLED.setBrightness(150);
@@ -225,8 +206,6 @@ void setup()
     stepper.startAsService(); // Kinky Makers - we have modified this function
                               // from default library to run on core 1 and suggest
                               // you don't run anything else on that core.
-
-
 
     WiFi.mode(WIFI_STA); // explicitly set mode, esp defaults to STA+AP
     // put your setup code here, to run once:
@@ -256,11 +235,9 @@ void setup()
         LogDebug("settings reset");
     }
 
-
     // OLED SETUP
     g_ui.Setup();
     g_ui.UpdateOnly();
-
 
     // Rotary Encoder Pushbutton
     pinMode(ENCODER_SWITCH, INPUT_PULLDOWN);
@@ -279,7 +256,6 @@ void setup()
         LogDebug("OSSM should now be home and happy");
         g_has_not_homed = false;
     }
-
 
     // Kick off the http and motion tasks - they begin executing as soon as they
     // are created here! Do not change the priority of the task, or do so with
@@ -322,17 +298,14 @@ void setup()
 
     g_ui.UpdateMessage("OSSM Ready to Play");
 
-
-
-    #ifdef USEESPNOW
-
+#ifdef USEESPNOW
+    WiFi.mode(WIFI_STA);
     uint8_t newMACAddress[] = {0x34, 0x86, 0x5D, 0x58, 0xB2, 0x74};
     esp_wifi_set_mac(WIFI_IF_STA, &newMACAddress[0]);
 
-
-    WiFi.disconnect();
     // Init ESP-NOW
-    if (esp_now_init() != 0) {
+    if (esp_now_init() != 0)
+    {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
@@ -340,11 +313,9 @@ void setup()
     // Register for a callback function that will be called when data is received
     esp_now_register_recv_cb(OnDataRecv);
 
-
     g_ui.UpdateMessage(String(WiFi.macAddress()));
 
-    #endif
-
+#endif
 
 } // Void Setup()
 
@@ -438,10 +409,8 @@ void getUserInputTask(void *pvParameters)
     for (;;) // tasks should loop forever and not return - or will throw error in
              // OS
     {
-        //LogDebug("Speed: " + String(speedPercentage) + "\% Stroke: " + String(strokePercentage) +
+        // LogDebug("Speed: " + String(speedPercentage) + "\% Stroke: " + String(strokePercentage) +
         //         "\% Distance to target: " + String(stepper.getDistanceToTargetSigned()) + " steps?");
-
-
 
         if (speedPercentage > 1)
         {
@@ -450,7 +419,7 @@ void getUserInputTask(void *pvParameters)
         else
         {
             stepper.emergencyStop();
-            //LogDebug("FULL STOP CAPTAIN");
+            // LogDebug("FULL STOP CAPTAIN");
         }
 
         if (digitalRead(WIFI_CONTROL_TOGGLE_PIN) == HIGH) // TODO: check if wifi available and handle gracefully

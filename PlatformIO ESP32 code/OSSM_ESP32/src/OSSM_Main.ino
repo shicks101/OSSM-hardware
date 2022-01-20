@@ -164,7 +164,9 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
     Serial.println(String(incomingReadings.dec_percentage));
     // position_in = incomingReadings.position;
 
-    position = constrain(((-1 * maxStrokeLengthMm) - strokeZeroOffsetmm) * incomingReadings.dec_percentage, 10, 100);
+    position = constrain((maxStrokeLengthMm * (1-incomingReadings.dec_percentage)), 6, 50);
+
+    Serial.println(position);
 
     g_ui.UpdateMessage(String(position));
     stepper.setSpeedInStepsPerSecond(1000);
